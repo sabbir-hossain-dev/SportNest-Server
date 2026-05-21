@@ -10,6 +10,19 @@ const port = process.env.PORT || 5000;
 const corsOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
   : null;
+let mongoConnectionPromise = null;
+
+const connectMongo = async () => {
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+  if (!mongoConnectionPromise) {
+    mongoConnectionPromise = mongoose.connect(process.env.MONGODB_URI);
+  }
+
+  return mongoConnectionPromise;
+};
 
 app.use(
   cors({
@@ -21,10 +34,9 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-mongoose
-  .connect(process.env.MONGODB_URI)
+connectMongo()
   .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.log(err));
+  .catch((err) => console.log("MongoDB connection failed:", err));
 
 app.get("/", (req, res) => {
   res.send("Server is Live.........");
@@ -32,12 +44,16 @@ app.get("/", (req, res) => {
 
 app.get("/facilities", async (req, res) => {
   try {
+    await connectMongo();
     const facilities = await Facility.find();
     res.send(facilities);
   } catch (error) {
     res.status(500).send({
       message: "Failed to fetch facilities",
-      error,
+      error: {
+        name: error?.name,
+        message: error?.message,
+      },
     });
   }
 });
@@ -51,7 +67,10 @@ app.post("/facilities", async (req, res) => {
   } catch (error) {
     res.status(500).send({
       message: "Failed to add facility",
-      error,
+      error: {
+        name: error?.name,
+        message: error?.message,
+      },
     });
   }
 });
@@ -67,7 +86,10 @@ app.post("/facilities/bulk", async (req, res) => {
   } catch (error) {
     res.status(500).send({
       message: "Failed to add multiple facilities",
-      error,
+      error: {
+        name: error?.name,
+        message: error?.message,
+      },
     });
   }
 });
