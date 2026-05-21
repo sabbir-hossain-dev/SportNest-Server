@@ -7,13 +7,13 @@ require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 5000;
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+  : null;
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000", 
-      "https://sport-nest-server-a4sz.vercel.app/" 
-    ],
+    origin: corsOrigins && corsOrigins.length > 0 ? corsOrigins : true,
     credentials: true,
   })
 );
