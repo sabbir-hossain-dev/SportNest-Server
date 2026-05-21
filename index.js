@@ -10,7 +10,10 @@ const port = process.env.PORT || 5000;
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: [
+      "http://localhost:3000", 
+      "https://sport-nest-server-a4sz.vercel.app/" 
+    ],
     credentials: true,
   })
 );
@@ -23,15 +26,13 @@ mongoose
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.log(err));
 
-
 app.get("/", (req, res) => {
-  res.send("SportNest Server Running....");
+  res.send("Server is Live.........");
 });
 
 app.get("/facilities", async (req, res) => {
   try {
     const facilities = await Facility.find();
-
     res.send(facilities);
   } catch (error) {
     res.status(500).send({
@@ -44,11 +45,8 @@ app.get("/facilities", async (req, res) => {
 app.post("/facilities", async (req, res) => {
   try {
     const newFacility = req.body;
-
     const facility = new Facility(newFacility);
-
     const savedFacility = await facility.save();
-
     res.send(savedFacility);
   } catch (error) {
     res.status(500).send({
@@ -58,6 +56,26 @@ app.post("/facilities", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+app.post("/facilities/bulk", async (req, res) => {
+  try {
+    const facilitiesData = req.body; 
+    const savedFacilities = await Facility.insertMany(facilitiesData);
+    res.status(201).send({
+      message: `${savedFacilities.length} facilities added successfully!`,
+      data: savedFacilities
+    });
+  } catch (error) {
+    res.status(500).send({
+      message: "Failed to add multiple facilities",
+      error,
+    });
+  }
 });
+
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
+
+module.exports = app;
