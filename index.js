@@ -1,4 +1,5 @@
 const Facility = require("./models/Facility");
+const Booking = require("./models/Booking");
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
@@ -50,16 +51,14 @@ app.get("/facilities", async (req, res) => {
   } catch (error) {
     res.status(500).send({
       message: "Failed to fetch facilities",
-      error: {
-        name: error?.name,
-        message: error?.message,
-      },
+      error: { name: error?.name, message: error?.message },
     });
   }
 });
 
 app.post("/facilities", async (req, res) => {
   try {
+    await connectMongo();
     const newFacility = req.body;
     const facility = new Facility(newFacility);
     const savedFacility = await facility.save();
@@ -67,16 +66,14 @@ app.post("/facilities", async (req, res) => {
   } catch (error) {
     res.status(500).send({
       message: "Failed to add facility",
-      error: {
-        name: error?.name,
-        message: error?.message,
-      },
+      error: { name: error?.name, message: error?.message },
     });
   }
 });
 
 app.post("/facilities/bulk", async (req, res) => {
   try {
+    await connectMongo();
     const facilitiesData = req.body; 
     const savedFacilities = await Facility.insertMany(facilitiesData);
     res.status(201).send({
@@ -86,11 +83,47 @@ app.post("/facilities/bulk", async (req, res) => {
   } catch (error) {
     res.status(500).send({
       message: "Failed to add multiple facilities",
-      error: {
-        name: error?.name,
-        message: error?.message,
-      },
+      error: { name: error?.name, message: error?.message },
     });
+  }
+});
+
+app.post("/bookings", async (req, res) => {
+  try {
+    await connectMongo();
+    const newBooking = new Booking(req.body);
+    const savedBooking = await newBooking.save();
+    res.status(201).send(savedBooking);
+  } catch (error) {
+    res.status(500).send({ message: "Booking failed", error: { name: error?.name, message: error?.message } });
+  }
+});
+
+app.get("/bookings", async (req, res) => {
+  try {
+    await connectMongo();
+    const email = req.query.email;
+    const query = email ? { userEmail: email } : {}; 
+    const bookings = await Booking.find(query);
+    res.send(bookings);
+  } catch (error) {
+    res.status(500).send({ message: "Failed to fetch bookings", error: { name: error?.name, message: error?.message } });
+  }
+});
+
+app.delete("/bookings/:id", async (req, res) => {
+  try {
+    await connectMongo();
+    const id = req.params.id;
+    const result = await Booking.findByIdAndDelete(id);
+    
+    if (!result) {
+      return res.status(404).send({ message: "Booking not found" });
+    }
+    
+    res.send({ message: "Booking deleted successfully", deletedId: id });
+  } catch (error) {
+    res.status(500).send({ message: "Failed to delete booking", error: { name: error?.name, message: error?.message } });
   }
 });
 
